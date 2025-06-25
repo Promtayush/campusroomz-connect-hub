@@ -4,20 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from '@/hooks/use-toast';
 import { GraduationCap, Users, Calendar } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
-interface LoginProps {
-  onLogin: (userData: any) => void;
-}
-
-const Login = ({ onLogin }: LoginProps) => {
+const Login = () => {
+  const { signUp, signIn } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    name: '',
     department: ''
   });
   const [isRegistering, setIsRegistering] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const departments = [
     'Computer Science',
@@ -37,33 +36,26 @@ const Login = ({ onLogin }: LoginProps) => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.password || (isRegistering && !formData.department)) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
+    if (!formData.email || !formData.password || (isRegistering && (!formData.name || !formData.department))) {
       return;
     }
 
-    // Mock authentication
-    const userData = {
-      id: 1,
-      name: formData.email.split('@')[0],
-      email: formData.email,
-      department: formData.department || 'Computer Science',
-      role: 'teacher'
-    };
+    setLoading(true);
 
-    toast({
-      title: "Success",
-      description: `Welcome to CampusRoomz, ${userData.name}!`
-    });
+    if (isRegistering) {
+      await signUp(formData.email, formData.password, {
+        name: formData.name,
+        department: formData.department,
+        role: 'teacher'
+      });
+    } else {
+      await signIn(formData.email, formData.password);
+    }
 
-    onLogin(userData);
+    setLoading(false);
   };
 
   return (
@@ -129,6 +121,21 @@ const Login = ({ onLogin }: LoginProps) => {
             
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {isRegistering && (
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required={isRegistering}
+                    />
+                  </div>
+                )}
+                
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <Input
@@ -164,7 +171,7 @@ const Login = ({ onLogin }: LoginProps) => {
                       value={formData.department}
                       onChange={handleInputChange}
                       className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
+                      required={isRegistering}
                     >
                       <option value="">Select your department</option>
                       {departments.map((dept) => (
@@ -174,8 +181,12 @@ const Login = ({ onLogin }: LoginProps) => {
                   </div>
                 )}
                 
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                  {isRegistering ? 'Create Account' : 'Sign In'}
+                <Button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  disabled={loading}
+                >
+                  {loading ? 'Loading...' : (isRegistering ? 'Create Account' : 'Sign In')}
                 </Button>
                 
                 <div className="text-center">
@@ -183,6 +194,7 @@ const Login = ({ onLogin }: LoginProps) => {
                     type="button"
                     onClick={() => setIsRegistering(!isRegistering)}
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    disabled={loading}
                   >
                     {isRegistering 
                       ? 'Already have an account? Sign in' 

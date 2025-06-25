@@ -1,27 +1,24 @@
 
-import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import Login from '@/components/auth/Login';
 import Dashboard from '@/components/dashboard/Dashboard';
 
 const Index = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  const { user, loading } = useAuth();
 
-  const handleLogin = (userData: any) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-  };
-
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
   }
 
-  return <Dashboard user={user} onLogout={handleLogout} />;
+  if (!user) {
+    return <Login />;
+  }
+
+  return <Dashboard />;
 };
 
 export default Index;

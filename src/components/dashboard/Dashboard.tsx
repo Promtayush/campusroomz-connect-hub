@@ -1,20 +1,19 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LogOut, Calendar, Clock, MapPin, Users, Plus, Search } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import BookingForm from '@/components/booking/BookingForm';
 import BookingList from '@/components/booking/BookingList';
 import StatsCards from '@/components/dashboard/StatsCards';
 
-interface DashboardProps {
-  user: any;
-  onLogout: () => void;
-}
-
-const Dashboard = ({ user, onLogout }: DashboardProps) => {
+const Dashboard = () => {
+  const { user, signOut } = useAuth();
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [bookings, setBookings] = useState([
     {
       id: 1,
@@ -38,19 +37,53 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
     }
   ]);
 
-  const handleNewBooking = (bookingData: any) => {
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    
+    if (data) {
+      setUserProfile(data);
+    }
+  };
+
+  const handleNewBooking = async (bookingData: any) => {
+    // Add booking to state (in real app, this would save to database)
     const newBooking = {
       id: bookings.length + 1,
       ...bookingData,
       status: 'upcoming',
-      department: user.department
+      department: userProfile?.department || 'Computer Science'
     };
     setBookings([...bookings, newBooking]);
     setShowBookingForm(false);
+
+    // Log activity
+    if (user) {
+      await supabase.from('activities').insert({
+        user_id: user.id,
+        action_type: 'booking_created',
+        description: `Created booking for ${bookingData.roomName}`,
+        metadata: bookingData
+      });
+    }
   };
 
   const upcomingBookings = bookings.filter(b => b.status === 'upcoming');
   const pastBookings = bookings.filter(b => b.status === 'past');
+
+  const displayName = userProfile?.name || user?.email?.split('@')[0] || 'User';
+  const displayDepartment = userProfile?.department || 'Computer Science';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -70,13 +103,13 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
             
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                <p className="text-xs text-gray-600">{user.department}</p>
+                <p className="text-sm font-medium text-gray-900">{displayName}</p>
+                <p className="text-xs text-gray-600">{displayDepartment}</p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onLogout}
+                onClick={signOut}
                 className="text-gray-600 hover:text-gray-900"
               >
                 <LogOut className="h-4 w-4 mr-2" />
@@ -94,7 +127,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
           <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 text-white">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-bold mb-2">Welcome back, {user.name}!</h2>
+                <h2 className="text-2xl font-bold mb-2">Welcome back, {displayName}!</h2>
                 <p className="text-blue-100">Ready to book your next room or lab session?</p>
               </div>
               <Button
@@ -170,7 +203,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Department</span>
-                        <span className="font-semibold">{user.department}</span>
+                        <span className="font-semibold">{displayDepartment}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -228,7 +261,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         <BookingForm
           onSubmit={handleNewBooking}
           onClose={() => setShowBookingForm(false)}
-          user={user}
+          user={{ name: displayName, department: displayDepartment }}
         />
       )}
     </div>
