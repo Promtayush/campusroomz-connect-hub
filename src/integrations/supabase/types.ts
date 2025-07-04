@@ -36,6 +36,44 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_status_history: {
+        Row: {
+          booking_id: string
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_status: string
+          old_status: string | null
+          reason: string | null
+        }
+        Insert: {
+          booking_id: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_status: string
+          old_status?: string | null
+          reason?: string | null
+        }
+        Update: {
+          booking_id?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_status?: string
+          old_status?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_status_history_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           attendees: number | null
@@ -78,6 +116,101 @@ export type Database = {
         }
         Relationships: []
       }
+      departments: {
+        Row: {
+          contact_email: string | null
+          created_at: string
+          description: string | null
+          head_of_department: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          contact_email?: string | null
+          created_at?: string
+          description?: string | null
+          head_of_department?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          contact_email?: string | null
+          created_at?: string
+          description?: string | null
+          head_of_department?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      equipment: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_portable: boolean | null
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_portable?: boolean | null
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_portable?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          related_booking_id: string | null
+          title: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          related_booking_id?: string | null
+          title: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          related_booking_id?: string | null
+          title?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_related_booking_id_fkey"
+            columns: ["related_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -108,6 +241,96 @@ export type Database = {
         }
         Relationships: []
       }
+      room_equipment: {
+        Row: {
+          condition: string | null
+          equipment_id: string
+          id: string
+          notes: string | null
+          quantity: number | null
+          room_id: string
+        }
+        Insert: {
+          condition?: string | null
+          equipment_id: string
+          id?: string
+          notes?: string | null
+          quantity?: number | null
+          room_id: string
+        }
+        Update: {
+          condition?: string | null
+          equipment_id?: string
+          id?: string
+          notes?: string | null
+          quantity?: number | null
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_equipment_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rooms: {
+        Row: {
+          booking_rules: Json | null
+          building: string | null
+          capacity: number
+          created_at: string
+          description: string | null
+          equipment: string[] | null
+          floor: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          room_number: string | null
+          room_type: string
+          updated_at: string
+        }
+        Insert: {
+          booking_rules?: Json | null
+          building?: string | null
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          equipment?: string[] | null
+          floor?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          room_number?: string | null
+          room_type: string
+          updated_at?: string
+        }
+        Update: {
+          booking_rules?: Json | null
+          building?: string | null
+          capacity?: number
+          created_at?: string
+          description?: string | null
+          equipment?: string[] | null
+          floor?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          room_number?: string | null
+          room_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -122,6 +345,16 @@ export type Database = {
           p_booking_id?: string
         }
         Returns: boolean
+      }
+      create_notification: {
+        Args: {
+          p_user_id: string
+          p_title: string
+          p_message: string
+          p_type?: string
+          p_booking_id?: string
+        }
+        Returns: string
       }
     }
     Enums: {
