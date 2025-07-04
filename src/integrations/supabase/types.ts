@@ -36,6 +36,48 @@ export type Database = {
         }
         Relationships: []
       }
+      bookings: {
+        Row: {
+          attendees: number | null
+          created_at: string
+          date: string
+          end_time: string
+          id: string
+          purpose: string
+          room_name: string
+          start_time: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attendees?: number | null
+          created_at?: string
+          date: string
+          end_time: string
+          id?: string
+          purpose: string
+          room_name: string
+          start_time: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attendees?: number | null
+          created_at?: string
+          date?: string
+          end_time?: string
+          id?: string
+          purpose?: string
+          room_name?: string
+          start_time?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -71,7 +113,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_booking_conflict: {
+        Args: {
+          p_room_name: string
+          p_date: string
+          p_start_time: string
+          p_end_time: string
+          p_booking_id?: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { X, Calendar, Clock, MapPin } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BookingFormProps {
   onSubmit: (bookingData: any) => void;
@@ -43,7 +44,7 @@ const BookingForm = ({ onSubmit, onClose, user }: BookingFormProps) => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.roomName || !formData.date || !formData.startTime || !formData.endTime || !formData.purpose) {
@@ -78,12 +79,83 @@ const BookingForm = ({ onSubmit, onClose, user }: BookingFormProps) => {
       return;
     }
 
-    toast({
-      title: "Success",
-      description: `Room ${formData.roomName} booked successfully!`
-    });
+    // Check for booking conflicts
+    try {
+      const { data: hasConflict, error: conflictError } = await supabase
+        .rpc('check_booking_conflict', {
+          p_room_name: formData.roomName,
+          p_date: formData.date,
+          p_start_time: formData.startTime,
+          p_end_time: formData.endTime
+        });
 
-    onSubmit(formData);
+      if (conflictError) {
+        console.error('Error checking conflicts:', conflictError);
+        toast({
+          title: "Error",
+          description: "Failed to check for booking conflicts. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (hasConflict) {
+        toast({
+          title: "Booking Conflict",
+          description: `${formData.roomName} is already booked for ${formData.date} between ${formData.startTime} - ${formData.endTime}. Please choose a different time or room.`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Save booking to database
+      const { data: currentUser } = await supabase.auth.getUser();
+      
+      if (!currentUser.user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to create a booking",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error: insertError } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: currentUser.user.id,
+          room_name: formData.roomName,
+          date: formData.date,
+          start_time: formData.startTime,
+          end_time: formData.endTime,
+          purpose: formData.purpose,
+          attendees: formData.attendees ? parseInt(formData.attendees) : null
+        });
+
+      if (insertError) {
+        console.error('Error creating booking:', insertError);
+        toast({
+          title: "Error",
+          description: "Failed to create booking. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: `Room ${formData.roomName} booked successfully!`
+      });
+
+      onSubmit(formData);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Get today's date for min date validation

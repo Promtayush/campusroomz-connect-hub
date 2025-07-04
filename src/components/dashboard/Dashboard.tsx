@@ -14,32 +14,12 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [bookings, setBookings] = useState([
-    {
-      id: 1,
-      roomName: 'Conference Room A',
-      date: '2024-06-25',
-      startTime: '09:00',
-      endTime: '10:30',
-      purpose: 'Department Meeting',
-      status: 'upcoming',
-      department: 'Computer Science'
-    },
-    {
-      id: 2,
-      roomName: 'Lab B-202',
-      date: '2024-06-23',
-      startTime: '14:00',
-      endTime: '16:00',
-      purpose: 'Programming Workshop',
-      status: 'past',
-      department: 'Computer Science'
-    }
-  ]);
+  const [bookings, setBookings] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
       fetchUserProfile();
+      fetchBookings();
     }
   }, [user]);
 
@@ -57,15 +37,35 @@ const Dashboard = () => {
     }
   };
 
+  const fetchBookings = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('date', { ascending: true });
+    
+    if (data) {
+      // Transform database data to match component expectations
+      const transformedBookings = data.map(booking => ({
+        id: booking.id,
+        roomName: booking.room_name,
+        date: booking.date,
+        startTime: booking.start_time,
+        endTime: booking.end_time,
+        purpose: booking.purpose,
+        attendees: booking.attendees,
+        status: new Date(booking.date) < new Date() ? 'past' : 'upcoming',
+        department: userProfile?.department || 'Computer Science'
+      }));
+      setBookings(transformedBookings);
+    }
+  };
+
   const handleNewBooking = async (bookingData: any) => {
-    // Add booking to state (in real app, this would save to database)
-    const newBooking = {
-      id: bookings.length + 1,
-      ...bookingData,
-      status: 'upcoming',
-      department: userProfile?.department || 'Computer Science'
-    };
-    setBookings([...bookings, newBooking]);
+    // Refresh bookings after creation
+    await fetchBookings();
     setShowBookingForm(false);
 
     // Log activity
